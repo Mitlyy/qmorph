@@ -1,0 +1,76 @@
+data:
+  train_file: "data2/train.txt"
+  test_file:  "data2/test.txt"
+
+vocab:
+  lemma_vocab:    "vocab_books/lemma_vocab.json"
+  morph_vocab:    "vocab_books/morph_vocab.json"
+  form_mapping:   "vocab_books/form_mapping.json"
+
+model:
+  quantum_embedding:
+    vocab_size:     0
+    embed_dim:      512
+    n_senses:       12
+    pad_idx:        0
+
+  transformer:
+    embed_dim:      512
+    num_heads:      8
+    ff_dim:         2048
+    num_layers:     8
+    dropout:        0.05
+    max_seq_len:    512
+
+  lemma_decoder:
+    embed_dim:      512       
+    vocab_size:     0         
+    pad_idx:        0
+    dropout:        0.1
+
+  morph_decoder:
+    embed_dim:        512
+    morph_vocab_size: 0
+    form_mapping:     "vocab_save/form_mapping.json"
+    dropout:        0.1
+    pad_idx:          0
+
+training:
+  device:          "cuda"
+  batch_size:      16
+  max_length:      128
+  num_epochs:      30
+  learning_rate:   1e-4
+  weight_decay:    1e-5
+  grad_clip:       1.0
+  log_interval:    100
+  save_every:      1
+
+optimizer:
+  type:            "AdamW"
+  params:
+    lr:            3e-4
+    betas:         [0.9, 0.999]
+    eps:           1e-8
+    weight_decay:  1e-5
+
+scheduler:
+  type:            "LinearWarmupDecay"
+  params:
+    warmup_steps:  1000
+    total_steps:   20000
+
+inference:
+  max_gen_length: 50
+  decoder_type: "beam"
+  beam_size: 5
+  temperature: 1.7
+  top_k: 50
+  top_p: 0.9  
+
+checkpoint:
+  dir:             "checkpoints/"
+  prefix:          "model"
+  keep_last:       5
+
+seed:              42
