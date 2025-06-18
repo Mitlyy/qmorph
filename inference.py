@@ -75,7 +75,10 @@ def main():
         description="Inference (generation) для quantum_nlp_project"
     )
     parser.add_argument(
-        "--config", type=str, default="config/config.yaml", help="Путь к config.yaml"
+        "--config",
+        type=str,
+        default="config/config_books.yaml",
+        help="Путь к config.yaml",
     )
     parser.add_argument("--sentence", type=str, help="Начало предложения для генерации")
     parser.add_argument(
