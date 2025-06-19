@@ -1,0 +1,78 @@
+data:
+  train_file: "data/data_chat_2/train.txt"
+  test_file:  "data/data_chat_2/test.txt"
+  cache_dir:  "vocabs/vocab_chat/"
+
+vocab:
+  lemma_vocab:  "vocabs/vocab_chat/lemma_vocab.json"
+  morph_vocab:  "vocabs/vocab_chat/morph_vocab.json"
+  form_mapping: "vocabs/vocab_chat/form_mapping.json"
+
+model:
+  quantum_embedding:
+    vocab_size: 0       
+    embed_dim:  512
+    n_senses:   12
+    pad_idx:    0
+  transformer:
+    embed_dim:   512
+    num_heads:   8
+    ff_dim:      2048
+    num_layers:  8
+    dropout:     0.05
+    max_seq_len: 512
+  lemma_decoder:
+    embed_dim: 512
+    vocab_size: 0      
+    pad_idx:     0
+    dropout:     0.1
+  morph_decoder:
+    embed_dim:        512
+    morph_vocab_size: 0
+    form_mapping:     "vocabs/vocab_chat/form_mapping.json"
+    dropout:          0.1
+    pad_idx:          0
+
+inference:
+  max_gen_length: 20
+  decoder_type: "top_p"
+  beam_size: 3
+  temperature: 1.1
+  top_k: 50
+  top_p: 0.9  
+  # новые параметры:
+  eos_token: "<eos>"   
+  user_token: "<eos>"  
+  bot_token:  "<eos>"  
+  use_morphology: true 
+
+
+training:
+  device:       "cuda"
+  batch_size:   32
+  max_length:   64
+  num_epochs:   20
+  learning_rate: 1e-4
+  weight_decay:  1e-5
+  grad_clip:     1.0
+  log_interval:  50
+  save_every:    1
+  seed:          42
+
+optimizer:
+  params:
+    lr:           1e-4
+    betas:        [0.9, 0.999]
+    eps:          1e-8
+    weight_decay: 1e-5
+
+scheduler:
+  params:
+    warmup_steps:  500
+    total_steps:   10000
+
+checkpoint:
+  dir:         "checkpoints/"
+  prefix:      "model_epoch"
+  chat_prefix: "model_chat_epoch"
+  keep_last:   5

@@ -1,11 +1,11 @@
 data:
-  train_file: "data2/train.txt"
-  test_file:  "data2/test.txt"
+  train_file: "data/data1/train.txt"
+  test_file:  "data/data1/test.txt"
 
 vocab:
-  lemma_vocab:    "vocab_books/lemma_vocab.json"
-  morph_vocab:    "vocab_books/morph_vocab.json"
-  form_mapping:   "vocab_books/form_mapping.json"
+  lemma_vocab:    "vocabs/vocab_books/lemma_vocab.json"
+  morph_vocab:    "vocabs/vocab_books/morph_vocab.json"
+  form_mapping:   "vocabs/vocab_books/form_mapping.json"
 
 model:
   quantum_embedding:
@@ -31,7 +31,7 @@ model:
   morph_decoder:
     embed_dim:        512
     morph_vocab_size: 0
-    form_mapping:     "vocab_save/form_mapping.json"
+    form_mapping:     "vocabs/vocab_books/form_mapping.json"
     dropout:        0.1
     pad_idx:          0
 
