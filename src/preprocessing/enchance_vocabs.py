@@ -1,111 +1,152 @@
 #!/usr/bin/env python3
-import argparse
-import glob
+# src/preprocessing/enchance_vocabs.py
+
 import json
 import os
-from collections import defaultdict
+from typing import Dict, List, Tuple
 
-from lemmatizer import Lemmatizer
-from tokenizer import Tokenizer
+import torch
+
+from .lemmatizer import Lemmatizer
+from .tokenizer import Tokenizer
 
 
-def load_json(path):
+def load_json(path: str) -> Dict:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def save_json(obj, path):
+def save_json(data: Dict, path: str) -> None:
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, indent=2)
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def extend_vocabularies(
-    chat_dir: str,
-    lemma_vocab_path: str,
-    morph_vocab_path: str,
-    form_mapping_path: str,
-):
-    lemma_vocab = load_json(lemma_vocab_path)
-    morph_vocab = load_json(morph_vocab_path)
-    form_mapping = load_json(form_mapping_path)
-
-    next_lemma_id = max(lemma_vocab.values(), default=0) + 1
-    next_morph_id = max(morph_vocab.values(), default=0) + 1
-
-    tok = Tokenizer()
-    lem = Lemmatizer()
-
-    chat_files = glob.glob(os.path.join(chat_dir, "*.txt"))
-    if not chat_files:
-        print(f"Не найдено файлов в {chat_dir}")
-        return
-
-    for path in chat_files:
-        with open(path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not (line.startswith("<user>") or line.startswith("<bot>")):
-                    continue
-                if " - " not in line:
-                    continue
-                _, text = line.split(" - ", 1)
-                tokens = tok.tokenize(text)
-                for token in tokens:
-                    lemma, morph_tag = lem.lemmatize_token(token)
-
-                    if lemma not in lemma_vocab:
-                        lemma_vocab[lemma] = next_lemma_id
-                        next_lemma_id += 1
-
-                    if morph_tag not in morph_vocab:
-                        morph_vocab[morph_tag] = next_morph_id
-                        next_morph_id += 1
-
-                    lid = str(lemma_vocab[lemma])
-                    mid = str(morph_vocab[morph_tag])
-                    if lid not in form_mapping:
-                        form_mapping[lid] = {}
-                    if mid not in form_mapping[lid]:
-                        form_mapping[lid][mid] = token
-
-    save_json(lemma_vocab, lemma_vocab_path)
-    save_json(morph_vocab, morph_vocab_path)
-    save_json(form_mapping, form_mapping_path)
+def parse_chat_lines(chat_path: str) -> List[str]:
+    """
+    Считывает файл диалогов, отбрасывает пустые строки и
+    префиксы '<user> -' / '<bot> -', возвращает список чистых строк.
+    """
+    out = []
+    with open(chat_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            for tag in ("<user>", "<bot>"):
+                if line.startswith(tag):
+                    line = line[len(tag) :].lstrip(" -")
+                    break
+            out.append(line)
+    return out
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Расширить существующие словари лемм и морф-тегов по данным чатов"
-    )
-    parser.add_argument(
-        "--chat_dir",
-        type=str,
-        required=True,
-        help="Папка с .txt-файлами чатов",
-    )
-    parser.add_argument(
-        "--lemma_vocab",
-        type=str,
-        default="vocab/lemma_vocab.json",
-        help="Путь к lemma_vocab.json",
-    )
-    parser.add_argument(
-        "--morph_vocab",
-        type=str,
-        default="vocab/morph_vocab.json",
-        help="Путь к morph_vocab.json",
-    )
-    parser.add_argument(
-        "--form_mapping",
-        type=str,
-        default="vocab/form_mapping.json",
-        help="Путь к form_mapping.json",
-    )
-    args = parser.parse_args()
+def _enhance_and_cache(
+    chat_file: str,
+    lemma_vocab: Dict[str, int],
+    morph_vocab: Dict[str, int],
+    form_mapping: Dict[str, Dict[str, str]],
+    output_dir: str,
+) -> None:
+    """
+    Разбирает чат, дополняет словари (предварительно в них уже есть <pad>/<unk>) и
+    сохраняет их + кэш токенов в output_dir.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    tokenizer = Tokenizer(lowercase=True)
+    lemmatizer = Lemmatizer()
 
-    extend_vocabularies(
-        chat_dir=args.chat_dir,
-        lemma_vocab_path=args.lemma_vocab,
-        morph_vocab_path=args.morph_vocab,
-        form_mapping_path=args.form_mapping,
-    )
+    next_lemma_id = max(lemma_vocab.values(), default=-1) + 1
+    next_morph_id = max(morph_vocab.values(), default=-1) + 1
+
+    cache = []
+
+    for line in parse_chat_lines(chat_file):
+        tokens = tokenizer.tokenize(line)
+        lemma_ids, morph_ids = [], []
+
+        for tok in tokens:
+            # если это маркер, оставляем его «как есть»
+            if tok in ("<user>", "<bot>"):
+                lemma, morph = tok, tok
+            else:
+                lemma, morph = lemmatizer.lemmatize([tok])[0]
+
+            if lemma not in lemma_vocab:
+                lemma_vocab[lemma] = next_lemma_id
+                form_mapping[str(next_lemma_id)] = {}
+                next_lemma_id += 1
+            lid = lemma_vocab[lemma]
+
+            if morph not in morph_vocab:
+                morph_vocab[morph] = next_morph_id
+                next_morph_id += 1
+            mid = morph_vocab[morph]
+
+            form_mapping[str(lid)][str(mid)] = tok
+
+            lemma_ids.append(lid)
+            morph_ids.append(mid)
+
+        cache.append({"lemma_ids": lemma_ids, "morph_ids": morph_ids})
+
+    save_json(lemma_vocab, os.path.join(output_dir, "lemma_vocab.json"))
+    save_json(morph_vocab, os.path.join(output_dir, "morph_vocab.json"))
+    save_json(form_mapping, os.path.join(output_dir, "form_mapping.json"))
+    torch.save(cache, os.path.join(output_dir, "chat_cache.pt"))
+
+
+def load_or_enhance_vocabs(
+    lemma_vocab_file: str,
+    morph_vocab_file: str,
+    form_mapping_file: str,
+    chat_file: str,
+    cache_dir: str = "vocabs/vocab_chat",
+) -> Tuple[Dict[str, int], Dict[str, int], Dict[str, Dict[str, str]]]:
+    """
+    Если в cache_dir уже есть chat_cache.pt — просто подгружает
+    обновлённые словари оттуда. Иначе —
+    1) добавляет в исходные словари спец-токены <pad> и <unk>,
+    2) докидывает туда новые токены из chat_file и кэширует их,
+    3) возвращает итоговые словари.
+    """
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_pt = os.path.join(cache_dir, "chat_cache.pt")
+
+    lemma_vocab = load_json(lemma_vocab_file)
+    morph_vocab = load_json(morph_vocab_file)
+    form_mapping = load_json(form_mapping_file)
+
+    pad_token = "<pad>"
+    unk_token = "<unk>"
+    pad_idx = 0
+
+    max_lid = max(lemma_vocab.values(), default=-1)
+    max_mid = max(morph_vocab.values(), default=-1)
+    next_lid = max_lid + 1
+    next_mid = max_mid + 1
+
+    if pad_token not in lemma_vocab:
+        lemma_vocab[pad_token] = pad_idx
+        form_mapping[str(pad_idx)] = {}
+    if pad_token not in morph_vocab:
+        morph_vocab[pad_token] = pad_idx
+
+    if unk_token not in lemma_vocab:
+        lemma_vocab[unk_token] = next_lid
+        form_mapping[str(next_lid)] = {}
+        next_lid += 1
+    if unk_token not in morph_vocab:
+        morph_vocab[unk_token] = next_mid
+        next_mid += 1
+
+    if not os.path.exists(cache_pt):
+        print("Расширяю словари и кэширую токены…")
+        _enhance_and_cache(chat_file, lemma_vocab, morph_vocab, form_mapping, cache_dir)
+    else:
+        print(f"Загружаю кэш из {cache_pt}")
+
+    lemma_vocab = load_json(os.path.join(cache_dir, "lemma_vocab.json"))
+    morph_vocab = load_json(os.path.join(cache_dir, "morph_vocab.json"))
+    form_mapping = load_json(os.path.join(cache_dir, "form_mapping.json"))
+
+    return lemma_vocab, morph_vocab, form_mapping
