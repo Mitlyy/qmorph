@@ -16,7 +16,7 @@ from src.preprocessing.tokenizer import Tokenizer
 
 
 def extract_after_bot_regex(text: str) -> str:
-    match = re.search(r"(?<=<bot>)(.*)", text)
+    match = re.search(r">\s*-\s*(.+?)\s*<", text)
     return match.group(1).strip() if match else ""
 
 
