@@ -38,7 +38,9 @@ def main():
     parser.add_argument(
         "--input_dir", type=str, required=True, help="Папка с .txt-файлами"
     )
-    parser.add_argument("--output_dir", type=str, default="data", help="Папка вывода")
+    parser.add_argument(
+        "--output_dir", type=str, default="data/data1", help="Папка вывода"
+    )
     parser.add_argument(
         "--train_ratio", type=float, default=0.9, help="Доля для train.txt"
     )

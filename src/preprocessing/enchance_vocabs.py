@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# src/preprocessing/enchance_vocabs.py
 
 import json
 import os

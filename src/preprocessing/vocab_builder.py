@@ -68,7 +68,10 @@ if __name__ == "__main__":
         help="Путь к data/train.txt",
     )
     parser.add_argument(
-        "--output_dir", type=str, default="../vocab", help="Папка для JSON-словари"
+        "--output_dir",
+        type=str,
+        default="../vocabs/vocab_books",
+        help="Папка для JSON-словари",
     )
     args = parser.parse_args()
     build_vocab(args.train_file, args.output_dir)
