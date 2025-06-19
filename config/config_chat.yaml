@@ -37,9 +37,9 @@ inference:
   max_gen_length: 20
   decoder_type: "top_p"
   beam_size: 3
-  temperature: 1.1
-  top_k: 50
-  top_p: 0.9  
+  temperature: 1.8
+  top_k: 40
+  top_p: 0.4  
   # новые параметры:
   eos_token: "<eos>"   
   user_token: "<eos>"  
