@@ -6,7 +6,7 @@
 ---
 
 ### Установка зависимостей
-
+`python == 3.9`
 ```bash
 pip install -r requirements.txt
 ./download_and_extract.sh && 
