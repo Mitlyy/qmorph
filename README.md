@@ -9,6 +9,7 @@
 
 ```bash
 pip install -r requirements.txt
+./download_and_extract.sh && 
 ```
 
 ### Инференс (текстовая генерация)
