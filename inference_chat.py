@@ -214,14 +214,12 @@ def main():
         start_ids = [
             lemma_vocab.get(t, lemma_vocab.get("<unk>", pad_id)) for t in tokens
         ]
-        print(start_ids)
         seq = torch.tensor([start_ids + [user_id]], dtype=torch.long, device=device)
 
         new_ids = generate_lemmas(
             seq, embedding, transformer, lemma_decoder, inf_cfg, device
         )
         full_ids = torch.tensor([start_ids + new_ids], dtype=torch.long, device=device)
-        print(full_ids)
         mask = full_ids.eq(pad_id)
         psi, _ = embedding(full_ids)
         context = transformer(psi, mask)
@@ -250,7 +248,7 @@ def main():
 
             out_tokens.append(w)
 
-        print("Bot:", " ".join(out_tokens))
+        # print("Bot:", " ".join(out_tokens))
         print("Bot:", extract_after_bot_regex(" ".join(out_tokens)))
 
     print("Bye")
