@@ -8,8 +8,8 @@
 ### Установка зависимостей
 `python == 3.9.*`
 ```bash
-pip install -r requirements.txt
-./download_and_extract.sh && 
+pip install -r requirements.txt && 
+./download_and_extract.sh 
 ```
 
 ### Инференс (текстовая генерация)
@@ -40,7 +40,6 @@ python train.py
 
 ```bash
 python split_chats.py "chats/result.txt" --out_dir "data/data_chat_2" && 
-mkdir vocabs/vocab_chat/ &&
 mkdir vocabs/vocab_chat && cp /vocabs/vocab_books/*.json vocabs/vocab_chat &&
 python train_chat.py
 ```
